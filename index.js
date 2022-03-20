@@ -17,7 +17,8 @@ app.get('/', function(req, res) {
 
 app.post('/api/', async function(req, res) {
   const ticker = req.body.ticker;
-  let result = await getData(ticker);
+  const hist = req.body.history;
+  let result = await getData(ticker,hist);
   let output = {
     'ticker': ticker,
     'result': {
@@ -45,7 +46,7 @@ async function updateTable() {
   }
 }
 
-async function getData(tick) {
+async function getData(tick, hist) {
   let result = {
     code: 0,
     error: 0,
@@ -64,7 +65,7 @@ async function getData(tick) {
     const industry = tickerInfo.industry;
     const market_cap = tickerInfo.market_cap;
 
-    let searchBatch = 10;
+    let searchBatch = hist;
     let postURL = `https://api.queryly.com/cnbc/json.aspx?queryly_key=31a35d40a9a64ab3&query=${name}&endindex=0&batchsize=${searchBatch}&callback=&showfaceted=false&timezoneoffset=0&facetedfields=formats&facetedkey=formats%7C&facetedvalue=!Press%20Release%7C&additionalindexes=4cd6f71fbf22424d,937d600b0d0d4e23,3bfbe40caee7443e,626fdfcd96444f28`;
 
     let output = [];
