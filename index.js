@@ -69,43 +69,42 @@ async function getData(tick, hist) {
     let postURL = `https://api.queryly.com/cnbc/json.aspx?queryly_key=31a35d40a9a64ab3&query=${name}&endindex=0&batchsize=${searchBatch}&callback=&showfaceted=false&timezoneoffset=0&facetedfields=formats&facetedkey=formats%7C&facetedvalue=!Press%20Release%7C&additionalindexes=4cd6f71fbf22424d,937d600b0d0d4e23,3bfbe40caee7443e,626fdfcd96444f28`;
 
     let output = [];
-    await new Promise((resolve, reject) => {
-      request({
-        url: postURL,
-        method: "POST",
-        json: true
-      }, function(error, response, body) {
-        if (error) {
-          console.log(error);
-        }
-        let results = body.results;
-        // console.log(results);
-        results.sort(function(a, b) {
-          var keyA = Date.parse(a.datePublished), keyB = Date.parse(b.datePublished);
-          if (keyA < keyB) return 1;
-          if (keyA > keyB) return -1;
-          return 0;
-        });
-
-        results.forEach((article) => {
-          output.push({
-            datetime: (new Date(Date.parse(article.datePublished))).toJSON(),
-            summary: article.summary,
-            description: article.description,
+    try{
+      await new Promise((resolve, reject) => {
+        request({
+          url: postURL,
+          method: "POST",
+          json: true
+        }, function(error, response, body) {
+          if (error) {
+            console.log(error);
+            reject(error);
+          }
+          let results = body.results;
+          results.sort(function(a, b) {
+            var keyA = Date.parse(a.datePublished), keyB = Date.parse(b.datePublished);
+            if (keyA < keyB) return 1;
+            if (keyA > keyB) return -1;
+            return 0;
           });
+          results.forEach((article) => {
+            output.push({
+              datetime: (new Date(Date.parse(article.datePublished))).toJSON(),
+              summary: article.summary,
+              description: article.description,
+            });
+          });
+          result.code = 200;
+          result.output = output;
+          resolve();
         });
-        // console.log(name);
-        // console.log(output);
-        result.code = 200;
-        result.output = output;
-        resolve();
       });
-    });
+    }catch(error){
+      result.code = 408;
+      result.error = `Request timed-out with error: ${error}`;
+    }
   }
-
   return result;
-
-
 }
 
 function getTickerInfo(ticker) {
