@@ -1,6 +1,7 @@
 const express = require('express')
 const axios = require('axios');
 const cheerio = require('cheerio');
+var request = require('request');
 const app = express()
 const port = process.env.PORT || 8080;
 
@@ -10,21 +11,21 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.get('/',function(req, res){
-  // res.send(TICKER_TABLE);
-  res.send();
+  res.send(TICKER_TABLE);
+  // res.send();
 });
 
-app.post('/api/', function(req, res) {
+app.post('/api/', async function(req, res) {
   const ticker = req.body.ticker;
-  let result = getData(ticker);
-  res.send({
+  let result = await getData(ticker);
+  let output = {
     'ticker': ticker,
     'result':{
       'code':result.code,
       'error':result.error,
       'output':result.output,
-    }
-  });
+    }};
+  res.send(output);
 });
 
 app.listen(port, () => {
@@ -33,7 +34,6 @@ app.listen(port, () => {
   setInterval(async function () {
     updateTable();
   }, 20 * 60000);
-  // }, 10000);
 })
 
 async function updateTable(){
@@ -44,27 +44,59 @@ async function updateTable(){
   }
 }
 
-function getData(ticker){
+async function getData(tick){
   let result = {
     code:0,
     error:0,
     output:0,
   }
 
-  const tickerExists = checkTicker(ticker);
+  const tickerExists = checkTicker(tick);
   
   if(!tickerExists){
     result.code = 400;
-    result.error = `Could not find ticker: ${ticker}`;
+    result.error = `Could not find ticker: ${tick}`;
   }else{
-    let tickerInfo = getTickerInfo(ticker);
-    
+    let tickerInfo = getTickerInfo(tick);
+    const ticker = tickerInfo.ticker;
+    const name = tickerInfo.name;
+    const industry = tickerInfo.industry;
+    const market_cap = tickerInfo.market_cap;
 
-    
+    let postURL = `https://api.queryly.com/cnbc/json.aspx?queryly_key=31a35d40a9a64ab3&query=${name}&endindex=0&batchsize=10&callback=&showfaceted=false&timezoneoffset=0&facetedfields=formats&facetedkey=formats%7C&facetedvalue=!Press%20Release%7C&additionalindexes=4cd6f71fbf22424d,937d600b0d0d4e23,3bfbe40caee7443e,626fdfcd96444f28`;
+
+    let results;
+    await request({
+        url: postURL,
+        method: "POST",
+        json: true
+    }, function (error, response, body){
+      results = body.results;
+      results.sort(function(a, b) {
+        var keyA = Date.parse(a.datePublished), keyB = Date.parse(b.datePublished);
+        if (keyA < keyB) return 1;
+        if (keyA > keyB) return -1;
+        return 0;
+      });
+      let headlines = [];
+      results.forEach((article)=>{
+        headlines.push({
+          datetime: (new Date(Date.parse(article.datePublished))).toJSON(),
+          summary: article.summary,
+          description: article.description,
+        });
+      });
+      console.log(headlines);
+    });
+
   }
 
   return result;
   
+}
+
+function getTickerInfo(ticker){
+  return TICKER_TABLE[ticker.toUpperCase()];
 }
 
 function checkTicker(ticker){
@@ -72,12 +104,6 @@ function checkTicker(ticker){
     return true;
   }
   return false;
-}
-
-async function getTickerInfo(ticker){
-  
-
-  
 }
 
 async function updateTickerTable(){
