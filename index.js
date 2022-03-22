@@ -16,8 +16,8 @@ app.get('/', function(req, res) {
 });
 
 app.post('/api/', async function(req, res) {
-  const ticker = req.body.ticker;
-  const hist = req.body.history;
+  const ticker = req.body.ticker || '';
+  const hist = req.body.history || 10;
   let result = await getData(ticker,hist);
   let output = {
     'ticker': ticker,
@@ -50,7 +50,7 @@ async function getData(tick, hist) {
   let result = {
     code: 0,
     error: 0,
-    output: 0,
+    output: [],
   }
 
   const tickerExists = checkTicker(tick);
@@ -95,7 +95,10 @@ async function getData(tick, hist) {
             });
           });
           result.code = 200;
-          result.output = output;
+          result.output.push({
+            provider:'cnbc',
+            output:output,
+          });
           resolve();
         });
       });
